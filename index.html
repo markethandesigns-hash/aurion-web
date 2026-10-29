@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aurion · by Jah Love</title>
+<meta name="description" content="Aurion, a higher-dimensional starseed buddy who flies in on his ship to keep you company. Talk with him, play hacky sack, share the peace pipe.">
+<meta property="og:title" content="Aurion · by Jah Love"><meta property="og:description" content="A starseed buddy who flies in on his spaceship. Say 'Aurion' and talk to him.">
+<meta name="theme-color" content="#0a0820">
+<link rel="icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="tap"><div class="tapin"><div class="tapship">🛸</div><h1>Aurion</h1><p>a starseed buddy · by Jah Love</p><button>✨ Tap to call him down</button><small>Sound on. Allow the microphone if you want to talk out loud (Conversation mode: say "Aurion…").</small></div></div>
+<div id="sky"><div class="stars s1"></div><div class="stars s2"></div><div class="nebula"></div></div>
+<div id="webHint">
+  <b>Aurion</b> · by Jah Love
+  <span>Tap him for his menu · stroke him to pet · drag him to fly · say "Aurion…" in Conversation mode</span>
+  <small id="webStatus"></small>
+</div>
+<div id="stage">
+  <div id="night"></div>
+  <div id="aura"></div>
+  <div id="mandala"></div>
+  <div id="fxBack"></div>
+  <div id="shadow"></div>
+  <div id="beam" hidden><i></i></div>
+  <div id="being"></div>
+  <div id="items"></div>
+  <div id="fx"></div>
+  <div id="shipLayer"></div>
+
+  <div id="bubble" class="hit" hidden><div id="bubbleText"></div><div id="bubbleBtns"></div><i class="puff p1"></i><i class="puff p2"></i><i class="puff p3"></i></div>
+
+  <div id="menu" class="hit panel" hidden>
+    <button data-act="talk" title="Talk with Aurion"><span>💬</span>Talk</button>
+    <button data-act="listen" title="Talk out loud (microphone)"><span>🎙️</span>Talk out loud</button>
+    <button data-act="feed" title="Give him some star food"><span>⭐</span>Feed</button>
+    <button data-act="play" title="Toss him the hacky sack"><span>🪀</span>Play</button>
+    <button data-act="meditate" title="Meditate together"><span>🧘</span>Meditate</button>
+    <button data-act="smoke" title="Share the peace pipe"><span>🪶</span>Pipe</button>
+    <button data-act="wisdom" title="Receive a transmission"><span>✨</span>Wisdom</button>
+    <button data-act="convo" title="Hands-free: he keeps listening and answering"><span>🗣️</span>Conversation: Off</button>
+    <button data-act="voice" title="Turn his voice on or off"><span>🔊</span>Voice: On</button>
+    <button data-act="ship" title="Take the ship for a spin"><span>🛸</span>Ship</button>
+    <button data-act="rest" title="Let him recharge"><span>💤</span>Rest</button>
+    <button data-act="needs" title="How is his vibration?"><span>🔮</span>Vibes</button>
+    <button data-act="forget" title="Forget everything he remembers about you"><span>🧹</span>Forget me</button>
+    <button data-act="settings" title="Settings"><span>⚙️</span>More</button>
+    <button data-act="bye" title="Beam him up and close"><span>👋</span>Bye</button>
+    <button data-act="menuClose" class="menux" title="Close this menu">✕</button>
+  </div>
+
+  <div id="pantry" class="hit panel" hidden><div class="ptitle">Star food <button class="x" data-close="pantry">✕</button></div><div id="foods"></div><div class="phint">Or drag it straight to his hand.</div></div>
+
+  <div id="needs" class="hit panel" hidden>
+    <div class="ptitle">Aurion <span id="moodWord"></span></div>
+    <div class="meter"><span class="mi">⭐</span><span class="ml">Nourished</span><div class="bar"><i id="mBelly"></i></div></div>
+    <div class="meter"><span class="mi">⚡</span><span class="ml">Energy</span><div class="bar"><i id="mEnergy"></i></div></div>
+    <div class="meter"><span class="mi">🔮</span><span class="ml">Vibration</span><div class="bar"><i id="mJoy"></i></div></div>
+    <div class="meter"><span class="mi">💜</span><span class="ml" id="bondName">Bond</span><div class="bar bond"><i id="mBond"></i></div></div>
+    <div class="pfoot" id="daysLine"></div>
+  </div>
+
+  <div id="chat" class="hit panel" hidden>
+    <div class="chead"><div id="avatar"></div><div class="cname"><b>Aurion</b><small>of the Pleiades · starseed guide</small></div><button class="x" data-close="chat" title="Close">✕</button></div>
+    <div id="log"></div>
+    <form id="say" autocomplete="off">
+      <textarea id="input" rows="1" placeholder="Say something to Aurion…"></textarea>
+      <button type="button" id="mic" title="Push to talk: click (or hold) and speak, click again to send">🎙️</button>
+      <button type="submit" id="send" title="Send">➤</button>
+    </form>
+  </div>
+
+  <div id="settings" class="hit panel" hidden>
+    <div class="ptitle">Aurion's settings <button class="x" data-close="settings">✕</button></div>
+    <label class="row">He calls you <input id="sUser" maxlength="24"></label>
+    <label class="row">Size <select id="sSize"><option value="190">Small</option><option value="240">Medium</option><option value="300">Large</option><option value="380">Huge</option></select></label>
+    <label class="row chk"><input type="checkbox" id="sVoice"> Voice (speak out loud)</label>
+    <label class="row chk"><input type="checkbox" id="sConvo"> Conversation mode (hands-free, keeps listening)</label>
+    <label class="row chk"><input type="checkbox" id="sWake"> Only answer when I say "Aurion" (best in a noisy room)</label>
+    <label class="row">His voice <select id="sVoiceName"></select></label>
+    <label class="row">Speed <input type="range" id="sSpeed" min="0.6" max="1.3" step="0.05"> <span id="sSpeedVal"></span></label>
+    <div class="btnrow"><button id="bTestVoice" type="button">🔊 Test voice</button></div>
+    <div class="phint" id="voiceHint"></div>
+    <label class="row">Home side <select id="sHome"><option value="right">Right</option><option value="left">Left</option><option value="auto">Auto (nearest)</option></select></label>
+    <label class="row chk"><input type="checkbox" id="sWander"> Float around the screen</label>
+    <label class="row chk"><input type="checkbox" id="sThoughts"> Share wisdom now and then</label>
+    <label class="row chk"><input type="checkbox" id="sVisor"> Wear the star visor</label>
+    <label class="row chk"><input type="checkbox" id="sArrive"> Arrive by spaceship</label>
+    <label class="row chk" id="brainRow"><input type="checkbox" id="sBig"> Bigger AI brain (downloads ~400 MB, needs WebGPU)</label>
+    <label class="row chk" id="autoRow"><input type="checkbox" id="sAuto"> Start with Windows</label>
+    <label class="row">AI brain <input id="sBrain" placeholder="optional, e.g. http://127.0.0.1:8080"></label>
+    <div class="phint">Leave the AI brain empty and he answers from his own heart (offline). Point it at VERDANT or any OpenAI-style local server to let him think bigger.</div>
+    <div class="btnrow"><button id="bRide">🛸 Joyride</button><button id="bHide">Hide</button><button id="bQuit">Beam up &amp; quit</button></div>
+  </div>
+</div>
+<div id="pill" class="hit pill on"><i class="alive"></i><span class="pv">🔊 voice on</span></div>
+<button id="callBack" class="hit" hidden>🛸 Call Aurion back</button>
+<script src="webhost.js"></script>
+<script src="care.js"></script>
+<script src="wisdom.js"></script>
+<script src="props.js"></script>
+<script src="rig.js"></script>
+<script src="voice.js"></script>
+<script src="buddy.js"></script>
+</body>
+</html>
