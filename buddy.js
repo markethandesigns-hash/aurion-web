@@ -22,7 +22,7 @@ if(WEB) document.body.classList.add('web');
 
 /* ------------------------------------------------------------------ saved state */
 const SAVE_KEY = 'aurion_save_v1';
-const CFG = { user: 'starseed', size: 240, voice: true, convo: false, wake: true, home: 'right', voiceName: '', voiceSpeed: .9, wander: true, thoughts: true, visor: false, brainUrl: '', arrive: true };
+const CFG = { menuPlace: 'corner-right', user: 'starseed', size: 240, voice: true, convo: false, wake: true, home: 'right', voiceName: '', voiceSpeed: .9, wander: true, thoughts: true, visor: false, brainUrl: '', arrive: true };
 let S = { pet: Care.fresh(), cfg: Object.assign({ voiceV2: true }, CFG), seen: now() };
 function persist(){ S.seen = now(); try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(_){} }
 function loadSave(){ try{ const j = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if(j && j.pet){ S.pet = Object.assign(Care.fresh(), j.pet); S.cfg = Object.assign({}, CFG, j.cfg || {}); if(!S.cfg.voiceV2){ S.cfg.voiceV2 = true; S.cfg.voice = true; } S.seen = j.seen || now(); if(j.mem) S.mem = j.mem; } }catch(_){} }
@@ -109,7 +109,7 @@ function placeBubble(){
   const hp = rig.headPoint(), r = bub.getBoundingClientRect();
   const left = clamp(hp.x - r.width / 2, 8, W() - r.width - 8);
   let top = hp.top - r.height - 30;
-  if(!$('#menu').hidden) top -= $('#menu').offsetHeight + 8;
+  if(!$('#menu').hidden && menuFollows()) top -= $('#menu').offsetHeight + 8;
   if(top < 8) top = 8;
   bub.style.transform = 'translate(' + left + 'px,' + top + 'px)';
   bub.style.setProperty('--tail', clamp(hp.x - left, 18, r.width - 18) + 'px');
@@ -790,13 +790,16 @@ function clickHim(){
   togglePanel('menu');
 }
 
+/* 1.2.2 menu placement: 'corner-right' (default), 'corner-left', or 'follow' (floats over his head) */
+const menuFollows = () => S.cfg.menuPlace === 'follow';
+function menuCorner(m){ const r = m.getBoundingClientRect(), left = S.cfg.menuPlace === 'corner-left'; return 'translate(' + Math.round(left ? 12 : W() - r.width - 12) + 'px,' + Math.round(Math.max(8, H() - r.height - 12)) + 'px)'; }
 /* ------------------------------------------------------------------ panels */
 const PANELS = ['menu', 'pantry', 'needs', 'chat', 'settings'];
 function closePanels(keepChat){ PANELS.forEach(p => { if(keepChat && p === 'chat') return; $('#' + p).hidden = true; }); const fp = $('#focusPanel'); if(fp) fp.hidden = true; if(!keepChat) F.chatting = false; }
 function togglePanel(name){
   const el = $('#' + name), open = el.hidden;
   closePanels(name !== 'chat' && !$('#chat').hidden);
-  if(open){ if(name === 'menu'){ menuPinned = false; if(F.mode === 'walk' || F.mode === 'idle'){ F.mode = 'idle'; pose('idle'); F.vx = 0; F.until = now() + 15000; } } el.hidden = false; placeFloating(); if(name === 'menu') menuPinned = true; if(name !== 'menu') hideBubble(); }
+  if(open){ if(name === 'menu'){ menuPinned = false; if(menuFollows() && F.mode === 'walk' || F.mode === 'idle'){ F.mode = 'idle'; pose('idle'); F.vx = 0; F.until = now() + 15000; } } el.hidden = false; placeFloating(); if(name === 'menu') menuPinned = true; if(name !== 'menu') hideBubble(); }
 }
 let menuPinned = false;   // once open, the menu stays put so buttons never slide out from under a finger
 function placeFloating(){
@@ -806,7 +809,8 @@ function placeFloating(){
   $('#mandala').style.transform = 'translate(' + F.x + 'px,' + (H() - F.y - (62 + 140) * rig.k) + 'px)';
   $('#night').style.setProperty('--nx', F.x + 'px'); $('#night').style.setProperty('--ny', cy + 'px');
   if(F.resting && now() > (F.nextZ || 0)){ F.nextZ = now() + 1700; puff('z', hp.x + 16, hp.top + 40, 'z'); }
-  if(!m.hidden && !menuPinned){ const r = m.getBoundingClientRect(); m.style.transform = 'translate(' + clamp(hp.x - r.width / 2, 8, W() - r.width - 8) + 'px,' + Math.max(8, hp.top - r.height - 4) + 'px)'; }
+  if(!m.hidden && !menuFollows()){ const tf = menuCorner(m); if(m.style.transform !== tf) m.style.transform = tf; }
+  else if(!m.hidden && !menuPinned){ const r = m.getBoundingClientRect(); m.style.transform = 'translate(' + clamp(hp.x - r.width / 2, 8, W() - r.width - 8) + 'px,' + Math.max(8, hp.top - r.height - 4) + 'px)'; }
   for(const id of ['pantry', 'needs', 'settings', 'chat']){
     const el = $('#' + id); if(el.hidden) continue;
     const r = el.getBoundingClientRect(), half = size() * .3;
@@ -861,7 +865,7 @@ function transmission(){ act('think', 1.2, () => { rig.chakra = 1; setTimeout(()
 function fillSettings(){
   const c = S.cfg;
   $('#sUser').value = c.user; $('#sSize').value = String(c.size); $('#sVoice').checked = c.voice; $('#sWander').checked = c.wander; $('#sThoughts').checked = c.thoughts; if($('#sBig')){ $('#sBig').checked = !!c.bigBrain; $('#brainRow').hidden = !host.canBigBrain; } if(WEB && $('#sBrain')){ $('#sBrain').parentNode.hidden = true; if($('#sBrain').parentNode.nextElementSibling) $('#sBrain').parentNode.nextElementSibling.hidden = true; }
-  $('#sSpeed').value = c.voiceSpeed; $('#sSpeedVal').textContent = (+c.voiceSpeed).toFixed(2) + '×'; fillVoices(); $('#sHome').value = c.home || 'right'; $('#sVisor').checked = c.visor; $('#sArrive').checked = c.arrive; $('#sBrain').value = c.brainUrl || '';
+  $('#sSpeed').value = c.voiceSpeed; $('#sSpeedVal').textContent = (+c.voiceSpeed).toFixed(2) + '×'; fillVoices(); $('#sHome').value = c.home || 'right'; if($('#sMenuPlace')) $('#sMenuPlace').value = c.menuPlace || 'corner-right'; $('#sVisor').checked = c.visor; $('#sArrive').checked = c.arrive; $('#sBrain').value = c.brainUrl || '';
   $('#autoRow').hidden = WEB; $('#bHide').hidden = WEB;
   if(!WEB) host.autostart().then(on => { $('#sAuto').checked = !!on; });
 }
@@ -872,6 +876,7 @@ $('#settings').addEventListener('change', e => {
   if(t.id === 'sVoice') setVoice(t.checked);
   if(t.id === 'sConvo') setConvo(t.checked);
   if(t.id === 'sWake'){ c.wake = t.checked; }
+  if(t.id === 'sMenuPlace'){ c.menuPlace = t.value; }
   if(t.id === 'sHome'){ c.home = t.value; if(!F.chatting) walkTo(homeX()); }
   if(t.id === 'sWander') c.wander = t.checked;
   if(t.id === 'sThoughts') c.thoughts = t.checked;
@@ -955,28 +960,8 @@ function echoOfHim(text){
   }
   return Voice.recentLines().some(l => { const his = new Set(w(l)); const hit = mine.filter(x => his.has(x)).length; return hit / mine.length >= .6; });
 }
-/* fuzzy, punctuation-proof wake word: "Aurion", "Orion.", "O'Ryan", "Arion", "a ryan", "Oreon"... in the first few words */
-const WAKE_SET = new Set(['aurion','aurian','auryon','orion','orian','oryan','oreon','arion','arian','aryan','orien','aureon','auron','oran','marion','aurora','ourion','orient']);
-function lev(a, b){ const d = Array.from({ length: a.length + 1 }, (_, i) => [i]); for(let j = 1; j <= b.length; j++) d[0][j] = j;
-  for(let i = 1; i <= a.length; i++) for(let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1)); return d[a.length][b.length]; }
-function isWakeTok(t){ if(!t || t.length < 4 || t.length > 8) return false; if(WAKE_SET.has(t)) return true;
-  return /^[aeiouh]/.test(t) && (lev(t, 'aurion') <= 2 || lev(t, 'orion') <= 1); }
-function findWake(text){
-  const raw = String(text || ''), toks = []; const re = /[A-Za-z']+/g; let m;
-  while((m = re.exec(raw)) && toks.length < 6) toks.push({ w: m[0].toLowerCase().replace(/'/g, ''), end: m.index + m[0].length });
-  const greet = new Set(['hey','hi','hello','ok','okay','yo','oh','so','um','uh']);
-  for(let i = 0; i < toks.length && i < 4; i++){
-    if(isWakeTok(toks[i].w)) return { hit: true, rest: raw.slice(toks[i].end).replace(/^[\s,.!?;:'"-]+/, '').trim() };
-    if(toks[i+1] && isWakeTok(toks[i].w + toks[i+1].w)) return { hit: true, rest: raw.slice(toks[i+1].end).replace(/^[\s,.!?;:'"-]+/, '').trim() };   // "O Ryan", "a ryan"
-    if(!greet.has(toks[i].w) && i >= 1) break;      // his name has to come near the start
-  }
-  /* ...or anywhere, when you call him: "so check it out. Hey, Aurion, can you..." */
-  const hm = /\b(hey|hi|okay|ok|yo)[\s,]+([A-Za-z']+)(?:[\s]+([A-Za-z']+))?/gi; let h;
-  while((h = hm.exec(raw))){ const a = h[2].toLowerCase().replace(/'/g, ''), b = (h[3] || '').toLowerCase().replace(/'/g, '');
-    if(isWakeTok(a)) return { hit: true, rest: raw.slice(h.index + h[0].length - (h[3] ? h[3].length : 0)).replace(/^[\s,.!?;:'"-]+/, '').trim() };
-    if(b && isWakeTok(a + b)) return { hit: true, rest: raw.slice(h.index + h[0].length).replace(/^[\s,.!?;:'"-]+/, '').trim() }; }
-  return { hit: false, rest: raw };
-}
+/* wake word: stricter in 1.2.2 (see wake.js): his name at the start, or a clear "hey Aurion" */
+const findWake = t => Wake.findWake(t);
 /* common mishears of the words people say to him */
 function fixMishears(t){ return String(t)
   .replace(/\b(pilates|pilate's|pleiadies|pleiadas|pleiadeans?|plaides|playadies|pleadies|pleiadis|pleiades's|palladians?|play ?a ?d[ei]e?s|plea ?d[ei]e?s|ple ?ya ?d[ei]e?s)\b/gi, 'Pleiades'); }
@@ -999,9 +984,12 @@ async function heardTurn(wav, how){
   heardTurn.lastKey = key; heardTurn.lastAt = now();
   if(text && echoOfHim(text)){ Voice.log('turn ignored: that was his own voice'); showHeard(text, 'my own voice, ignored'); if(loud) hideBubble(); convoUntil = now() + 3000; return afterTurn(how); }
   text = fixMishears(text);
-  const wk = findWake(text), follow = now() - lastReplyAt < 30000;   // right after he answers, no need to say his name again
+  /* 1.2.2: in an open room, drop TV/music/noise before it can count as a wake word or a follow-up */
+  if(how === 'free'){ const st = window.__lastTurnStats || null, jr = Wake.junkReason(text, res && res.meta, st, { handsFree: true, follow: now() - lastReplyAt < 30000 });
+    if(jr){ Voice.log('turn ignored: ' + jr + (st ? ' [voiced ' + (st.voiced || 0).toFixed(2) + 's, x' + (st.snr || 0).toFixed(1) + ' above room]' : '')); if(text) showHeard(text, 'background, ignored'); convoUntil = 0; return afterTurn(how); } }
+  const wk = findWake(text), follow = now() - lastReplyAt < 30000 && text.split(/\s+/).length <= 25;   // 1.2.2: a long stretch of room/TV talk is not a follow-up   // right after he answers, no need to say his name again
   Voice.log('wake check: ' + (wk.hit ? 'name heard' : 'no name') + ', follow-up window ' + (follow ? 'open (' + Math.round((now() - lastReplyAt) / 1000) + 's since reply)' : 'closed') + ', rest ' + JSON.stringify(wk.rest));
-  if(how === 'free' && S.cfg.wake && !wk.hit && !follow){ Voice.log('turn ignored: no wake word'); if(text) showHeard(text, 'say "Aurion" first'); convoUntil = 0; return afterTurn(how); }
+  if(how === 'free' && S.cfg.wake && !wk.hit && !follow){ Voice.log('turn ignored: no wake word'); if(text && text.split(/\s+/).length <= 6) showHeard(text, 'say "Aurion" first'); /* 1.2.2: long background talk is not put on the bar */ convoUntil = 0; return afterTurn(how); }
   if(wk.hit && !/[a-z]{2}/i.test(wk.rest)){             // just his name: answer and keep listening for the question
     showHeard(text, 'yes?'); lastReplyAt = now();
     await convoSay(pick(['Yes, ' + S.cfg.user + '? I\'m listening.', 'I\'m here. What would you like to know?', 'Mm-hm? Go ahead, I\'m listening.']));
@@ -1077,12 +1065,18 @@ async function send(text, o){
   if(memo){ addMsg('aurion', memo); hist.push({ role: 'user', content: text }, { role: 'assistant', content: memo }); saidRecently.push(memo); F.mode = 'idle'; act('talk', 2.5); say(memo, { convo: true, speak: !!o.convo }); chatBusy = false; persist(); if(o.convo) await untilQuiet(); return; }
   const thinking = addMsg('aurion', '…'); thinking.classList.add('thinking');
   act('think', 30);
-  hist.push({ role: 'user', content: text }); hist = hist.slice(-12);
+  /* 1.2.2: history is kept exactly as it was sent (no-repeat note included), and trimmed in jumps rather than sliding every turn,
+     so the brain can reuse its prompt cache and only has to read the newest lines (first word ~1 s instead of 3-5 s) */
+  const avoid = saidRecently.length ? ' (Answer in one or two short sentences. Do not repeat yourself; you recently said: ' + saidRecently.slice(-2).map(x => '"' + x.slice(0, 60) + '"').join(' ') + '.)' : ' (Answer in one or two short sentences.)';
+  hist.push({ role: 'user', content: text + avoid, said: text }); if(hist.length > 11) hist = hist.slice(-5);
   const tB = now(); let spokeFirst = '';   // when you talked to him: start speaking his first sentence while the brain writes the rest
-  const sys = Wisdom.fill(Wisdom.PERSONA, S.cfg.user) + memFacts() + (saidRecently.length ? ' Do not repeat yourself; you recently said: ' + saidRecently.slice(-4).map(x => '"' + x.slice(0, 90) + '"').join(' ') + '. Say something new.' : '');
-  let reply = await brainReply([{ role: 'system', content: sys }].concat(hist), o.convo ? (p => { if(!tooSimilar(p)){ spokeFirst = p; speak(p); } }) : null);
+  /* 1.2.2: the system prompt stays the same turn to turn (so the brain's prompt cache is reused and the first word comes fast);
+     only the last 6 messages go in, and the no-repeat note rides on your latest message */
+  const sys = Wisdom.fill(Wisdom.PERSONA, S.cfg.user) + memFacts();
+  const msgs = extra => [{ role: 'system', content: sys }].concat(hist.map((h, i, a) => ({ role: h.role, content: h.content + (extra && i === a.length - 1 ? extra : '') })));
+  let reply = await brainReply(msgs(), o.convo ? (p => { if(!tooSimilar(p)){ spokeFirst = p; speak(p); } }) : null);
   if(reply && tooSimilar(reply) && !spokeFirst){ Voice.log('brain reply too close to a recent one, asking again: ' + JSON.stringify(reply.slice(0, 80)));
-    const again = await brainReply([{ role: 'system', content: sys + ' Your last draft repeated an earlier answer. Answer differently, with a fresh detail.' }].concat(hist));
+    const again = await brainReply(msgs(' Your last draft repeated an earlier answer. Answer differently, with a fresh detail.'));
     reply = again && !tooSimilar(again) ? again : null; if(!reply) Voice.log('still repetitive, using a built-in answer'); }
   Voice.log('timing: brain step ' + Math.round(now() - tB) + 'ms' + (reply ? '' : ' (no brain reply, using built-in answers)'));
   if(!reply){ await wait(o.convo ? 0 : rand(600, 1300)); reply = Wisdom.reply(text, S.cfg.user); }
