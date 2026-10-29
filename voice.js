@@ -162,20 +162,22 @@ function onFrame(f){
   const thr = thrOf(v);
   if(!v.on){
     v.pre.push(f); if(v.pre.length > Math.ceil(.5 / fs)) v.pre.shift();           // 500 ms pre-roll so the first syllable (his name) is never clipped
-    v.loud = r > thr ? v.loud + fs : Math.max(0, v.loud - fs * .5);
-    if(v.loud >= .15){ v.on = true; v.quiet = 0; v.len = 0; v.voiced = 0; m.chunks = v.pre.slice(); v.pre = []; if(v.cb.onStart) v.cb.onStart(); }
+    v.run = r > thr ? (v.run || 0) + 1 : 0;                                       // 1.2.2: two frames in a row above the room before it counts
+    v.loud = v.run >= 2 ? v.loud + fs : Math.max(0, v.loud - fs * .5);
+    if(v.loud >= .18){ v.sum2 = 0; v.n2 = 0; v.on = true; v.quiet = 0; v.len = 0; v.voiced = 0; m.chunks = v.pre.slice(); v.pre = []; if(v.cb.onStart) v.cb.onStart(); }
     return;
   }
-  m.chunks.push(f); v.len += fs; if(r > thr) v.voiced += fs; v.quiet = r > thr * .75 ? 0 : v.quiet + fs;
-  if((v.quiet >= .8 && v.len >= .6) || v.len >= 15){   // 0.8 s of quiet ends the turn (was 1.2 s)
+  m.chunks.push(f); v.len += fs; if(r > thr){ v.voiced += fs; v.sum2 = (v.sum2 || 0) + r; v.n2 = (v.n2 || 0) + 1; } v.quiet = r > thr * .75 ? 0 : v.quiet + fs;
+  if((v.quiet >= (v.len - v.quiet < 1.1 ? .8 : .55) && v.len >= .6) || v.len >= 10){   // 1.2.2: 0.55 s of quiet ends the turn (was 0.8 s); after a lone short word ("Aurion,") wait 0.8 s so the question isn't cut off
     window.__turnEnd = performance.now() - v.quiet * 1000; const wav = encode(m.chunks, m.rate); m.chunks = []; v.on = false; v.loud = 0;
     vlog('vad turn ' + v.len.toFixed(2) + 's (voiced ' + v.voiced.toFixed(2) + 's), peak rms ' + (m.peak || 0).toFixed(3) + ', thr ' + thr.toFixed(4)); m.peak = 0;
-    if(v.voiced < .2){ vlog('vad: too little voice (' + v.voiced.toFixed(2) + 's voiced), dropped'); return; }   // a lone "Aurion" is only ~0.3 s of voice
+    window.__lastTurnStats = { voiced: v.voiced, len: v.len, snr: (v.n2 ? v.sum2 / v.n2 : 0) / Math.max(.001, v.floor) };
+    if(v.voiced < .15){ vlog('vad: too little voice (' + v.voiced.toFixed(2) + 's voiced), dropped'); return; }   // a lone "Aurion" is only ~0.3 s of voice
     if(v.cb.onTurn) v.cb.onTurn(wav);
   } else if(v.quiet >= 1.2){ m.chunks = []; v.on = false; v.loud = 0; }           // a click or cough, not speech
 }
 /* speech must stand clearly above the room, but a loud room must not make him deaf */
-function thrOf(v){ return Math.min(.06, Math.max(.007, v.floor * 2.6)); }
+function thrOf(v){ return Math.min(.07, Math.max(.009, v.floor * 3.4)); }   // 1.2.2: higher margin over the room (was x2.6, min .007)
 function encode(chunks, rate){
   let n = 0; chunks.forEach(c => n += c.length);
   const all = new Float32Array(n); let o = 0; chunks.forEach(c => { all.set(c, o); o += c.length; });
