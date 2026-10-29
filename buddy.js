@@ -156,6 +156,7 @@ const lateNight = () => { const h = new Date().getHours(); return h >= 23 || h <
 let lastActive = now();
 const userIdle = () => now() - lastActive;
 function decide(){
+  if(!$('#menu').hidden) return idle(2);   // don't wander off while his menu is open
   if(window.Focus && Focus.active()){   // focus mode: calm, still, at home in his corner
     if(!atHome()) return walkTo(homeX(), () => idle(2));
     F.mode = 'sit'; F.sitKind = 'focus'; pose(Focus.onBreak() ? 'sit' : 'meditate');
@@ -608,6 +609,12 @@ function endSmoke(quiet){
 function startPlay(){
   closePanels();
   if(items.sack){ endPlay(); return; }
+  /* say why instead of silently refusing */
+  if(F.mode === 'ship' || F.mode === 'away'){ return; }
+  if(S.pet.energy < 12){ say(pick(['I\'m too low on energy for hacky sack, ' + S.cfg.user + '. A snack or a little rest first?', 'My legs are out of stardust. Feed me or let me rest, then we\'ll play.']), { ms: 4200, convo: true, buttons: [['⭐ Feed', () => { renderPantry(); togglePanel('pantry'); }], ['💤 Rest', () => rest(false)]] }); return; }
+  if(window.Focus && Focus.active() && !Focus.onBreak()){ say('We\'re in a focus session. Want to play anyway?', { ms: 5000, convo: true, buttons: [['🪀 Play anyway', () => { Focus.snooze(); startPlay(); }], ['🎯 Keep focusing', () => {}]] }); return; }
+  if(smoking) endSmoke(true);
+  clearTimeout(sitFor.t); F.then = null; F.onArrive = null; F.until = 0;
   if(F.resting){ F.resting = false; $('#night').classList.remove('on'); }
   if(F.sitKind === 'meditate') stopMeditate(); F.sitKind = null;
   const el = Props.make('sack', size() * .085); el.classList.add('sack', 'hit'); $('#items').appendChild(el);
@@ -644,8 +651,9 @@ function startKick(sk, side, tHit, lands){
 }
 function play(dt){
   const sk = items.sack, s = size();
-  if(now() - sk.t0 > 120000 || S.pet.energy < 10) return endPlay();
-  if(F.mode === 'idle' || (F.mode === 'act' && now() > F.until)){ F.mode = 'play'; pose('ready'); F.vx = 0; }
+  if(now() - sk.t0 > 120000) return endPlay();
+  if(S.pet.energy < 6) { endPlay(true); say('Phew, I\'m out of energy. Let\'s play again after a snack.', { ms: 3600 }); return; }
+  if(F.mode === 'idle' || F.mode === 'act' || F.mode === 'walk' || F.mode === 'sit'){ F.mode = 'play'; F.sitKind = null; pose('ready'); F.vx = 0; }   // the sack always wins over idle poses (was: waited out long 'think' acts, so Play looked dead)
   if(F.mode !== 'play') return;
   const kickH = 70 * rig.k, inAir = sk.y > .5 || sk.vy > 0;
   let want = 0;
@@ -751,6 +759,7 @@ document.addEventListener('pointermove', e => onMove(e.clientX, e.clientY));
 host.onCursor(p => onMove(p.x, p.y));
 document.addEventListener('pointerdown', e => {
   if(e.button !== 0 || F.mode === 'ship' || F.mode === 'away') return;
+  if(e.target && e.target.closest && e.target.closest('.panel, button, input, select, textarea, #bubble, #pill, #focusPanel')) return;   // a tap on the menu/panels is never a tap on him
   if(!rig.hit(e.clientX, e.clientY)) return;
   e.preventDefault(); audio();
   press = { x: e.clientX, y: e.clientY, ox: e.clientX - F.x, oy: (H() - F.y) - e.clientY };
@@ -776,19 +785,20 @@ function startDrag(){
 }
 function clickHim(){
   if(F.resting){ wakeUp(true); return; }
-  if(F.sitKind === 'meditate'){ endMeditate(); return; }
+  if(F.sitKind === 'meditate'){ endMeditate(); togglePanel('menu'); return; }
   if(F.sitKind === 'chill'){ F.sitKind = null; idle(6); togglePanel('menu'); return; }
   togglePanel('menu');
 }
 
 /* ------------------------------------------------------------------ panels */
 const PANELS = ['menu', 'pantry', 'needs', 'chat', 'settings'];
-function closePanels(keepChat){ PANELS.forEach(p => { if(keepChat && p === 'chat') return; $('#' + p).hidden = true; }); if(!keepChat) F.chatting = false; }
+function closePanels(keepChat){ PANELS.forEach(p => { if(keepChat && p === 'chat') return; $('#' + p).hidden = true; }); const fp = $('#focusPanel'); if(fp) fp.hidden = true; if(!keepChat) F.chatting = false; }
 function togglePanel(name){
   const el = $('#' + name), open = el.hidden;
   closePanels(name !== 'chat' && !$('#chat').hidden);
-  if(open){ el.hidden = false; placeFloating(); if(name !== 'menu') hideBubble(); }
+  if(open){ if(name === 'menu'){ menuPinned = false; if(F.mode === 'walk' || F.mode === 'idle'){ F.mode = 'idle'; pose('idle'); F.vx = 0; F.until = now() + 15000; } } el.hidden = false; placeFloating(); if(name === 'menu') menuPinned = true; if(name !== 'menu') hideBubble(); }
 }
+let menuPinned = false;   // once open, the menu stays put so buttons never slide out from under a finger
 function placeFloating(){
   const hp = rig.headPoint(), m = $('#menu');
   const cy = H() - F.y - size() * .5;
@@ -796,7 +806,7 @@ function placeFloating(){
   $('#mandala').style.transform = 'translate(' + F.x + 'px,' + (H() - F.y - (62 + 140) * rig.k) + 'px)';
   $('#night').style.setProperty('--nx', F.x + 'px'); $('#night').style.setProperty('--ny', cy + 'px');
   if(F.resting && now() > (F.nextZ || 0)){ F.nextZ = now() + 1700; puff('z', hp.x + 16, hp.top + 40, 'z'); }
-  if(!m.hidden){ const r = m.getBoundingClientRect(); m.style.transform = 'translate(' + clamp(hp.x - r.width / 2, 8, W() - r.width - 8) + 'px,' + Math.max(8, hp.top - r.height - 4) + 'px)'; }
+  if(!m.hidden && !menuPinned){ const r = m.getBoundingClientRect(); m.style.transform = 'translate(' + clamp(hp.x - r.width / 2, 8, W() - r.width - 8) + 'px,' + Math.max(8, hp.top - r.height - 4) + 'px)'; }
   for(const id of ['pantry', 'needs', 'settings', 'chat']){
     const el = $('#' + id); if(el.hidden) continue;
     const r = el.getBoundingClientRect(), half = size() * .3;
