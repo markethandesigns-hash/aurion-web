@@ -212,5 +212,6 @@ async function testVad(f32, rate, cb){
   for(let i = 0; i + 2048 <= f32.length; i += 2048){ onFrame(f32.slice(i, i + 2048)); if(i % (2048 * 16) === 0) await new Promise(r => setTimeout(r, 0)); }
   mic = keep;
 }
-window.Voice = { queue, recentLines: () => recent.map(x => x.text), testVad, spokeAgo: () => performance.now() - lastSpokeEnd, last: () => lastPlay, log: vlog, speak, stop, speaking, info: getInfo, record, stopRecord, recording: () => !!(mic && (mic.mode === 'ptt' || (mic.vad && mic.vad.on))), listening: () => handsFree, listen, stopListen, mute, levelProbe, canListen: () => !!host.transcribe };
+function unlock(){ try{ const a = audio(); const b = a.createBuffer(1, 1, 22050), src = a.createBufferSource(); src.buffer = b; src.connect(a.destination); src.start(0); }catch(_){} }
+window.Voice = { unlock, queue, recentLines: () => recent.map(x => x.text), testVad, spokeAgo: () => performance.now() - lastSpokeEnd, last: () => lastPlay, log: vlog, speak, stop, speaking, info: getInfo, record, stopRecord, recording: () => !!(mic && (mic.mode === 'ptt' || (mic.vad && mic.vad.on))), listening: () => handsFree, listen, stopListen, mute, levelProbe, canListen: () => !!host.transcribe };
 })();

@@ -14,7 +14,9 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const ez = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
 const eoc = t => 1 - Math.pow(1 - clamp(t, 0, 1), 3);
-const W = () => innerWidth, H = () => innerHeight;
+const safeEl = document.createElement('div'); safeEl.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding-bottom:env(safe-area-inset-bottom)'; document.documentElement.appendChild(safeEl);
+const safeB = () => parseFloat(getComputedStyle(safeEl).paddingBottom) || 0;
+const W = () => innerWidth, H = () => innerHeight - safeB();
 const Q = new URLSearchParams(location.search);
 if(WEB) document.body.classList.add('web');
 

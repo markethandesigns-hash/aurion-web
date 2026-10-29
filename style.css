@@ -195,3 +195,11 @@ button:active{transform:translateY(1px)}
 @media (max-width:600px){body.web #webHint span{display:none}}
 
 #webHint .credits{display:block;font:10px system-ui,sans-serif;opacity:.45;margin-top:2px;max-width:520px}
+
+/* iOS home-screen (standalone): keep UI clear of the notch / home bar */
+body.web #webHint{top:calc(14px + env(safe-area-inset-top));left:calc(18px + env(safe-area-inset-left))}
+#tap{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#pill{margin-bottom:env(safe-area-inset-bottom)}
+#callBack{margin-bottom:env(safe-area-inset-bottom)}
+html,body{overscroll-behavior:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#input{-webkit-user-select:text;user-select:text}
