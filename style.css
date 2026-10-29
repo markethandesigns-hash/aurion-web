@@ -214,3 +214,7 @@ html,body{overscroll-behavior:none;-webkit-touch-callout:none;-webkit-user-selec
 #focusRing .fg{stroke:#f5d98a;stroke-linecap:round;filter:drop-shadow(0 0 4px #f5d98a);transition:stroke-dashoffset .9s linear}
 #focusRing.brk .fg{stroke:#7fe0c4}#focusRing.paused .fg{stroke:#9a8fb8;filter:none}
 #focusRing span{position:absolute;left:50%;top:-18px;transform:translateX(-50%);font:600 12px system-ui,sans-serif;color:#f5d98a;text-shadow:0 0 6px #000;background:rgba(10,8,32,.6);padding:1px 7px;border-radius:9px}
+
+/* taps always land on the button itself (labels/icons are re-rendered on state changes) */
+#menu button *, .panel button *{pointer-events:none}
+#menu button, .panel button, #bubbleBtns button{touch-action:manipulation}
