@@ -111,6 +111,7 @@ H.gate = start => {
   const g = document.getElementById('tap');
   const go = async () => {
     g.classList.add('gone'); setTimeout(() => g.remove(), 700);
+    try{ window.Voice && Voice.unlock && Voice.unlock(); }catch(_){}
     try{ const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); }catch(_){}
     start();
     setTimeout(() => loadPiper(), 1500);
