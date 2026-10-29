@@ -101,8 +101,8 @@ H.loadBrain = () => {
 };
 H.chat = async ({ messages }) => {
   if(!llm) return { ok: false };
-  const t = new Promise(r => setTimeout(() => r(null), 7000));
-  const go = llm.chat.completions.create({ messages, max_tokens: 70, temperature: .85 }).then(j => j.choices[0].message.content).catch(() => null);
+  const t = new Promise(r => setTimeout(() => r(null), 4500));   // 1.2.2: was 7 s
+  const go = llm.chat.completions.create({ messages, max_tokens: 60, temperature: .85 }).then(j => j.choices[0].message.content).catch(() => null);
   const text = await Promise.race([go, t]); return text ? { ok: true, text } : { ok: false };
 };
 
