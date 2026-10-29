@@ -193,3 +193,5 @@ button:active{transform:translateY(1px)}
 .tapship{font-size:64px;animation:tb 3s ease-in-out infinite}@keyframes tb{50%{transform:translateY(-12px)}}
 #webStatus{display:block;font:11px system-ui,sans-serif;opacity:.6;margin-top:4px}
 @media (max-width:600px){body.web #webHint span{display:none}}
+
+#webHint .credits{display:block;font:10px system-ui,sans-serif;opacity:.45;margin-top:2px;max-width:520px}

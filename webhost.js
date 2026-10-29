@@ -9,7 +9,7 @@ const PH = 'https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm@1.0.0/build
 const TJS = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5';
 const WLLM = 'https://esm.run/@mlc-ai/web-llm@0.2.79';
 const LLM_ID = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
-const VOICES = ['en_GB-alan-medium', 'en_US-ryan-medium', 'en_US-joe-medium', 'en_US-norman-medium', 'en_GB-alan-low'];
+const VOICES = ['en_US-norman-medium'];   // public-domain Piper voice only (alan/joe/ryan are non-commercial or unclear)
 const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
 const log = [];
 const H = window.host = { web: true,
@@ -23,7 +23,7 @@ const H = window.host = { web: true,
 function setStatus(k, v){ H.status[k] = v; const el = document.getElementById('webStatus'); if(el) el.textContent = '🔊 ' + H.status.piper + ' · 👂 ' + H.status.ears + ' · 🧠 ' + H.status.brain; }
 
 /* ---------------- voice: Piper in the browser ---------------- */
-let piper = null, piperLoading = null, wantVoice = mobile ? 'en_GB-alan-low' : 'en_GB-alan-medium';
+let piper = null, piperLoading = null, wantVoice = 'en_US-norman-medium';
 const piperOK = !!(window.WebAssembly && navigator.storage && navigator.storage.getDirectory);
 const sessions = {};
 async function session(id){
