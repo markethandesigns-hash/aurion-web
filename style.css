@@ -203,3 +203,14 @@ body.web #webHint{top:calc(14px + env(safe-area-inset-top));left:calc(18px + env
 #callBack{margin-bottom:env(safe-area-inset-bottom)}
 html,body{overscroll-behavior:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 #input{-webkit-user-select:text;user-select:text}
+/* ---- focus mode ---- */
+#focusPanel{position:fixed;left:50%;bottom:calc(70px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(380px,92vw);z-index:50}
+#focusPanel .btnrow button.on{background:linear-gradient(135deg,#6b3fd6,#2b1a6b);color:#fff;border-color:#c9a6ff}
+#focusPanel #fNow{font:15px Georgia,serif;color:#f5d98a;margin:6px 0 8px}
+#focusRing{position:fixed;left:0;top:0;pointer-events:none;z-index:4}
+#focusRing svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+#focusRing circle{fill:none;stroke-width:2.2}
+#focusRing .bg{stroke:rgba(201,166,255,.18)}
+#focusRing .fg{stroke:#f5d98a;stroke-linecap:round;filter:drop-shadow(0 0 4px #f5d98a);transition:stroke-dashoffset .9s linear}
+#focusRing.brk .fg{stroke:#7fe0c4}#focusRing.paused .fg{stroke:#9a8fb8;filter:none}
+#focusRing span{position:absolute;left:50%;top:-18px;transform:translateX(-50%);font:600 12px system-ui,sans-serif;color:#f5d98a;text-shadow:0 0 6px #000;background:rgba(10,8,32,.6);padding:1px 7px;border-radius:9px}

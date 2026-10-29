@@ -156,6 +156,11 @@ const lateNight = () => { const h = new Date().getHours(); return h >= 23 || h <
 let lastActive = now();
 const userIdle = () => now() - lastActive;
 function decide(){
+  if(window.Focus && Focus.active()){   // focus mode: calm, still, at home in his corner
+    if(!atHome()) return walkTo(homeX(), () => idle(2));
+    F.mode = 'sit'; F.sitKind = 'focus'; pose(Focus.onBreak() ? 'sit' : 'meditate');
+    clearTimeout(sitFor.t); sitFor.t = setTimeout(() => { if(F.sitKind === 'focus'){ F.sitKind = null; idle(4); } }, 20000); return;
+  }
   if(inConvo()) return idle(2);
   const p = S.pet, m = Care.mood(p);
   if(items.food.length) return goEat(items.food[0]);
@@ -819,6 +824,7 @@ $('#menu').addEventListener('click', e => {
   else if(a === 'needs'){ drawNeeds(); togglePanel('needs'); }
   else if(a === 'settings'){ fillSettings(); togglePanel('settings'); }
   else if(a === 'bye') bye();
+  else if(a === 'focus'){ closePanels(); if(window.Focus) Focus.open(); }
   else if(a === 'forget'){ closePanels(); forgetMe(); }
 });
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { $('#' + b.dataset.close).hidden = true; if(b.dataset.close === 'chat') F.chatting = false; }));
@@ -1057,7 +1063,7 @@ async function brainLine(ask){ const r = await brainReply([{ role: 'system', con
 async function send(text, o){
   o = o || {}; text = text.trim(); if(!text || chatBusy) return;
   chatBusy = true; addMsg('you', text); inputEl.value = ''; Care.chat(S.pet); bondCheck();
-  const memo = memoryReply(text);
+  const memo = (window.Focus && Focus.onText(text)) || memoryReply(text);
   if(memo){ addMsg('aurion', memo); hist.push({ role: 'user', content: text }, { role: 'assistant', content: memo }); saidRecently.push(memo); F.mode = 'idle'; act('talk', 2.5); say(memo, { convo: true, speak: !!o.convo }); chatBusy = false; persist(); if(o.convo) await untilQuiet(); return; }
   const thinking = addMsg('aurion', '…'); thinking.classList.add('thinking');
   act('think', 30);
@@ -1127,7 +1133,7 @@ function bye(){
 $('#callBack').onclick = () => { $('#callBack').hidden = true; F.x = clamp(F.x, size(), W() - size()); arrive(); };
 let nextThought = now() + rand(3, 6) * 60000;
 function maybeThought(){
-  if(inConvo()) return;
+  if(inConvo() || (window.Focus && Focus.active())) return;
   if(!S.cfg.thoughts || now() < nextThought || F.mode === 'ship' || F.mode === 'away' || F.resting || F.chatting || items.sack || smoking) return;
   nextThought = now() + rand(12, 25) * 60000;
   say(Wisdom.thought(), { thought: true, ms: 9000 });
@@ -1173,6 +1179,6 @@ window.aurion = { setCfg: (k, v) => { S.cfg[k] = v; persist(); syncVoiceUI(); },
     await wait(300); return { vadTurns: fired, newChat: [...logEl.children].slice(l0).map(e => e.textContent) }; },
   speakAndWait: async t => { speak(t); await untilQuiet(); return Voice.spokeAgo(); },
   testTurn: async b64 => { const bin = atob(b64), u8 = new Uint8Array(bin.length); for(let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); const t0 = now(); await heardTurn(u8); return { ms: now() - t0, last: Voice.last(), log: [...logEl.children].slice(-2).map(e => e.textContent) }; }, get S(){ return S; }, F, rig, act, say, idle, walkTo, rest, wakeUp, meditate, endMeditate, startPlay, endPlay, spawnFood, smoke, openChat, send, petted, items, arrive, depart, ride, transmission,
-  memoryReply, forgetMe, findWake, heardTurn, feed: id => spawnFood(Care.FOODS.find(f => f.id === id)), setPet: (k, v) => { S.pet[k] = v; }, menu: () => togglePanel('menu') };
+  memoryReply, forgetMe, brainLine, goHome: () => walkTo(homeX(), () => idle(2)), closePanels, hideBubble, cfg: () => S.cfg, speaking: () => speaking(), findWake, heardTurn, feed: id => spawnFood(Care.FOODS.find(f => f.id === id)), setPet: (k, v) => { S.pet[k] = v; }, menu: () => togglePanel('menu') };
 if(window.host && window.host.gate) window.host.gate(start); else start();
 })();
