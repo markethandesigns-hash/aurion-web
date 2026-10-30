@@ -1058,6 +1058,19 @@ async function brainReply(messages, onFirst){
   finally{ brainPartCb = null; }
 }
 async function brainLine(ask){ const r = await brainReply([{ role: 'system', content: Wisdom.fill(Wisdom.PERSONA, S.cfg.user) }, { role: 'user', content: ask }]); return r; }
+/* 1.2.3 grounded facts: dates, time and zodiac signs are worked out exactly (facts.js), never left to the AI to guess */
+const RULES = ' Stay on what {u} actually asked. If you are not sure of a fact, say you are not sure instead of guessing. Never invent dates, times, zodiac signs, numbers or names; use only the facts given to you.';
+function factTexts(){ return ((S.mem && S.mem.facts) || []).map(f => typeof f === 'string' ? f : f.t); }
+function saveBirthday(when){ const t = 'your birthday is ' + when; if(typeof remember === 'function') remember('birthday', t); else { if(!S.mem) S.mem = { facts: [] }; S.mem.facts = S.mem.facts.filter(f => !/^your birthday is/i.test(f)); S.mem.facts.push(t); persist(); } }
+function groundFacts(text){
+  if(!window.Facts) return null; let q = text;
+  const d = Facts.findDate(text);
+  if(d && d.d && /\bmy (birth ?day|bday) is|\bi was born|\bi'?m born|\bi am born/i.test(text)){ const M = ['January','February','March','April','May','June','July','August','September','October','November','December']; saveBirthday(M[d.m] + ' ' + d.d); }
+  if(!d && !/\b(today|tonight|now|right now|this week)\b/i.test(text) && /\bmy (horoscope|sign|zodiac|star ?sign)\b|\bwhat sign am i\b/i.test(text)){ const b = factTexts().find(f => /birthday is/i.test(f)); if(b) q = text + ' (' + b.replace(/^.*birthday is\s*/i, 'born on ') + ')'; }
+  const r = Facts.answer(q); if(r) Voice.log('facts: ' + JSON.stringify(r).slice(0, 160)); return r;
+}
+const READINGS = ['Trust the quiet nudge inside you and take one small, kind step today.', 'Slow down, breathe, and let your heart pick the next move.', 'A good day to finish one thing you started and celebrate it.', 'Lead with curiosity; a small conversation could open a big door.', 'Ground yourself first, then create. Your hands know the way.'];
+const signsOf = gf => gf.sign ? [gf.sign] : (gf.signs || []);
 async function send(text, o){
   o = o || {}; text = text.trim(); if(!text || chatBusy) return;
   chatBusy = true; addMsg('you', text); inputEl.value = ''; Care.chat(S.pet); bondCheck();
@@ -1072,12 +1085,19 @@ async function send(text, o){
   const tB = now(); let spokeFirst = '';   // when you talked to him: start speaking his first sentence while the brain writes the rest
   /* 1.2.2: the system prompt stays the same turn to turn (so the brain's prompt cache is reused and the first word comes fast);
      only the last 6 messages go in, and the no-repeat note rides on your latest message */
-  const sys = Wisdom.fill(Wisdom.PERSONA, S.cfg.user) + memFacts();
+  const sys = Wisdom.fill(Wisdom.PERSONA + RULES, S.cfg.user) + ' ' + (window.Facts ? Facts.today() : '') + memFacts();
   const msgs = extra => [{ role: 'system', content: sys }].concat(hist.map((h, i, a) => ({ role: h.role, content: h.content + (extra && i === a.length - 1 ? extra : '') })));
-  let reply = await brainReply(msgs(), o.convo ? (p => { if(!tooSimilar(p)){ spokeFirst = p; speak(p); } }) : null);
-  if(reply && tooSimilar(reply) && !spokeFirst){ Voice.log('brain reply too close to a recent one, asking again: ' + JSON.stringify(reply.slice(0, 80)));
+  const gf = groundFacts(text), gfx = gf && !gf.direct;
+  const thinkT = !(gf && gf.direct) ? setTimeout(() => { const l = pick(['Let me check the stars…', 'Hmm, one moment, starseed…', 'Tuning in…']); thinking.textContent = l; if(o.convo && !spokeFirst) say(l, { convo: true, speak: true }); }, 2500) : 0;
+  let reply = (gf && gf.direct) || await brainReply(msgs(gfx && gf.facts ? ' (' + gf.facts + ')' : ''), o.convo && !gfx ? (p => { if(!tooSimilar(p)){ spokeFirst = p; speak(p); } }) : null);
+  clearTimeout(thinkT);
+  if(!(gf && gf.direct) && reply && tooSimilar(reply) && !spokeFirst){ Voice.log('brain reply too close to a recent one, asking again: ' + JSON.stringify(reply.slice(0, 80)));
     const again = await brainReply(msgs(' Your last draft repeated an earlier answer. Answer differently, with a fresh detail.'));
     reply = again && !tooSimilar(again) ? again : null; if(!reply) Voice.log('still repetitive, using a built-in answer'); }
+  if(gfx){ const ok = signsOf(gf);
+    if(reply && Facts.wrongSign(reply, ok)){ Voice.log('facts: the brain named the wrong sign, replaced: ' + JSON.stringify(reply.slice(0, 100))); reply = null; }
+    if(reply && gf.lead && !ok.every(x => new RegExp('\\b' + x + '\\b', 'i').test(reply))) reply = gf.lead + ' ' + reply;
+    if(!reply && (gf.lead || ok.length)) reply = (gf.lead || (ok[0] + ' energy is with you.')) + ' ' + pick(READINGS); }
   Voice.log('timing: brain step ' + Math.round(now() - tB) + 'ms' + (reply ? '' : ' (no brain reply, using built-in answers)'));
   if(!reply){ await wait(o.convo ? 0 : rand(600, 1300)); reply = Wisdom.reply(text, S.cfg.user); }
   hist.push({ role: 'assistant', content: reply }); saidRecently.push(reply); saidRecently = saidRecently.slice(-8);
@@ -1171,7 +1191,7 @@ function webHost(){
   const noop = () => {};
   return { ignoreMouse: noop, focus: noop, onCursor: noop, onResize: noop, onHello: noop, hide: noop, quit: noop,
     autostart: async () => false,
-    chat: async ({ url, messages }) => { try{ const r = await fetch(url.replace(/\/$/, '') + '/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages, max_tokens: 160, temperature: .8 }) }); const j = await r.json(); return { ok: true, text: j.choices[0].message.content }; }catch(_){ return { ok: false }; } } };
+    chat: async ({ url, messages }) => { try{ const r = await fetch(url.replace(/\/$/, '') + '/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages, max_tokens: 160, temperature: .5 }) }); const j = await r.json(); return { ok: true, text: j.choices[0].message.content }; }catch(_){ return { ok: false }; } } };
 }
 
 /* a handle for testing and for the demo page */
